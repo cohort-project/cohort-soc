@@ -1,4 +1,6 @@
 #include "cohort_fifo.h"
+#include "cache_metrics.h"
+#include "all_stats.h"
 
 struct _cohort_t;
 typedef struct _cohort_t cohort_t;
@@ -26,6 +28,10 @@ struct _cohort_t {
 
 	void* custom_data;
 
+    // Cache metrics
+    uint64_t l2_access;
+    uint64_t l2_misses;
+
 //	turn_on_t turn_on;
 //	turn_off_t turn_off;
 //	print_perf_monitor_t print_perf_monitor;
@@ -41,6 +47,8 @@ void cohort_on(c_id_t c_id);
 void cohort_stop_monitors(c_id_t c_id);
 void cohort_print_monitors(c_id_t c_id);
 void cohort_print_debug_monitors(c_id_t c_id);
+void cohort_collect_cache_metrics(cohort_t* cohort);
+void cohort_print_cache_metrics(cohort_t* cohort);
 
 cohort_t *cohort_init(c_id_t c_id, uint32_t fifo_length, uint16_t element_size)
 {
@@ -149,3 +157,18 @@ void cohort_print_debug_monitors(c_id_t c_id)
 
 }
 
+void cohort_collect_cache_metrics(cohort_t* cohort) {
+    uint8_t coreid = cohort->cohort_id;
+    cohort->l2_access = read_L2_access(coreid);
+    cohort->l2_misses = read_L2_misses(coreid);
+}
+
+void cohort_print_cache_metrics(cohort_t* cohort) {
+    printf("Cohort ID: %d\n", cohort->cohort_id);
+    printf("L2 Accesses: %ld\n", cohort->l2_access);
+    printf("L2 Misses: %ld\n", cohort->l2_misses);
+}
+
+void cohort_execute_with_stats(c_id_t c_id, void (*code)(void), uint32_t iter) {
+    all_stats(code, iter); // Use all_stats macro to collect and print performance metrics
+}
